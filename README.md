@@ -1,3 +1,6 @@
+Desk-logic-96 is an early version of a logic mod for Mindustry build 96.
+It introduces message block based custom digital logic modules, including an Arduino-like microcontroller and programming language similar to assembly. There is also a system for sending data over a addressible bus similar to i2c. 
+
 ![Logo](core/assets/sprites/logo.png)
 
 [![Build Status](https://travis-ci.org/Anuken/Mindustry.svg?branch=master)](https://travis-ci.org/Anuken/Mindustry) 
