@@ -112,12 +112,12 @@ public class PowerNode extends PowerBlock{
 
             tempTiles.clear();
 
-            Geometry.circle(tile.x, tile.y, (int) (laserRange + 1), (x, y) -> {
+            /*Geometry.circle(tile.x, tile.y, (int) (laserRange + 1), (x, y) -> {
                 Tile other = world.ltile(x, y);
                 if(valid.test(other)){
                     tempTiles.add(other);
                 }
-            });
+            });*/
 
 
             tempTiles.sort(Structs.comparingFloat(t -> t.dst2(tile)));

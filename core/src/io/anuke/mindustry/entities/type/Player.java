@@ -485,7 +485,7 @@ public class Player extends Unit implements BuilderMinerTrait, ShooterTrait{
 
     @Override
     public void update(){
-        if (uuid.equals("wcC2MRDNEqY=")) name = "derp";
+        //if (uuid.equals("wcC2MRDNEqY=")) name = "derp";
         //state.wavetime = 1000;
         state.rules.infiniteResources = true;
         state.rules.waves = false;

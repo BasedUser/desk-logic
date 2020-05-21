@@ -63,7 +63,7 @@ public class MessageBlock extends Block{
         }
 
         MessageBlockEntity entity = tile.entity();
-        if(entity != null && (player!=null)){
+        if(entity != null /*&& (player!=null)*/){
             entity.message = result.toString();
             entity.lines = entity.message.split("\n");
             entity.setCustom();

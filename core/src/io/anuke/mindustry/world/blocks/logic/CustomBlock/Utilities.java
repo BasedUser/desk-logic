@@ -8,6 +8,7 @@ import io.anuke.mindustry.gen.Call;
 import io.anuke.mindustry.world.Tile;
 import io.anuke.mindustry.world.blocks.defense.Door.DoorEntity;
 import io.anuke.mindustry.world.blocks.distribution.Sorter.SorterEntity;
+import io.anuke.mindustry.world.blocks.logic.MessageBlock.*;
 import io.anuke.mindustry.world.blocks.logic.CustomBlock.StorageSensor.D2;
 import io.anuke.mindustry.world.blocks.power.PowerGraph;
 
@@ -33,7 +34,7 @@ class Oscillator extends CustomBlock{
             entity.message += ";[scarlet]"+e.toString();
         }
         delayNano = delay * 100000;
-        Call.setMessageBlockText(null,tile,sname + delay);
+        //Call.setMessageBlockText(null,tile,sname + delay);
     }
 
     @Override
@@ -307,6 +308,92 @@ class SorterDisplayD2 extends CustomBlock {
                 sorterWrite(pos++, d);
                 if (pos>=sorters.length) pos = 0;
             }
+        }
+    }
+}
+
+class ROMBlock extends CustomBlock {
+    Tile[] sections, addrX, addrY, valX, valY, value, dac1, dac2, dac4;
+    int dacDepth = 4; // depth of addrX and addrY (use values higher than 4 sparingly)
+    int readHeads = 1; // how many octs to read at a time (change that to hex for use with SorterDisplay16, or use a deskware lookup table)
+    // sidenote: to actually get hex you're going to need to add a dac8, and that isn't exactly good
+    int resolution = 8; // how large a bank dimension is, 1-14
+    int sectWidth = 16; // dacDepth**2      
+    boolean initialized = false; // unlike mcus, which can operate with null messages, here we use the message blocks *as* data. unfortunately that means we need to init it one tick after
+    String name = "rom;";
+    ROMBlock(Tile tile){
+        super(tile);
+        try {
+            dacDepth = Mathf.clamp(Integer.parseInt((entity.message.split(";")[1])), 0, 6); //do NOT set that higher than 6
+            readHeads = Mathf.clamp(Integer.parseInt((entity.message.split(";")[2])), 1, 32);
+        } catch(Exception e) {
+            entity.message += ";[scarlet]"+e.toString();
+        }
+        sectWidth = (int)Math.pow(2,dacDepth);
+        sections = new Tile[(int)Math.pow(sectWidth,2)];
+        for (int i = 0; i < (int)Math.pow(sectWidth,2); i++) {
+            components.add(new Component(sections[i] = to(i%(sectWidth) + 1,i/(sectWidth) + 2), Blocks.message));
+            Call.setMessageBlockText(null, sections[i], "00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n("+i%sectWidth+";"+i/sectWidth+")"); // TODO adjust for resolution variable
+        }
+        addrX = new Tile[readHeads];
+        addrY = new Tile[readHeads];
+        valX = new Tile[readHeads];
+        valY = new Tile[readHeads];
+        value = new Tile[readHeads];
+        dac1 = new Tile[readHeads];
+        dac2 = new Tile[readHeads];
+        dac4 = new Tile[readHeads];
+        for(int i = 0; i<readHeads; i++) {
+            components.add(new Component(value[i] = to(-1+2*i,-10),Blocks.powerNode));
+            components.add(new Component(dac1[i] = to(2*i,-9),Blocks.solarPanel));
+            components.add(new Component(dac2[i] = to(-1+2*i,-8),Blocks.solarPanel));
+            components.add(new Component(to(-1+2*i,-7),Blocks.solarPanel));
+            components.add(new Component(dac4[i] = to(2*i,-6),Blocks.solarPanel));
+            components.add(new Component(to(2*i,-5),Blocks.solarPanel));
+            components.add(new Component(to(2*i,-4),Blocks.solarPanel));
+            components.add(new Component(to(2*i,-3),Blocks.solarPanel));
+            components.add(new Component(addrX[i] = to(0+2*i,1),Blocks.powerNode));
+            components.add(new Component(addrY[i] = to(-1+2*i,0),Blocks.powerNode));
+            components.add(new Component(valX[i] = to(0+2*i,-1),Blocks.powerNode));
+            components.add(new Component(valY[i] = to(-1+2*i,-2),Blocks.powerNode));
+        }
+    }
+    @Override
+    void logic(){
+        if(!initialized) {
+            for (int i = 0; i < (int)Math.pow(sectWidth,2); i++) {
+                Call.setMessageBlockText(null, sections[i], "00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n00000000\n("+i%sectWidth+";"+i/sectWidth+")"); // TODO adjust for resolution variable
+            }
+            initialized = !initialized;
+        }
+        for(int i=0;i<readHeads;i++) {
+            int addr = Mathf.clamp(analogRead(addrY[i]),0,sectWidth-1)*sectWidth + Mathf.clamp(analogRead(addrX[i]),0,sectWidth-1);
+            readROM(addr, Mathf.clamp(analogRead(valX[i]),0,resolution-1), Mathf.clamp(analogRead(valY[i]),0,resolution-1), i);
+        }
+    }
+ 
+    void readROM(int addr, int x, int y, int i) {
+        char val; // nullable
+        try { // try check if that character exists
+            val = ((MessageBlockEntity)sections[addr].entity()).lines[y].toCharArray()[x];
+        } catch(Exception e) { // it doesn't, don't read anything
+            // normally i'd put some code to pad it with zeroes from the right or bottom
+            // but it's better to just give an error instead
+            entity.message += ";[scarlet]E[[404] ("+addr+"|"+x+"|"+y+"|"+i+"):" + e;
+            return;
+        }
+        //int val_ = 0;
+        //if(val >= 'a' && val <= 'f') {
+        //    val -= 49;
+        //    val_ += 10;
+        //}
+        try {
+            int val_ = Integer.parseInt(Character.toString(val));
+            digitalWrite((val_&1) == 1,dac1[i],value[i]);
+            digitalWrite((val_&2) == 2,dac2[i],value[i]);
+            digitalWrite((val_&4) == 4,dac4[i],value[i]);
+        } catch(Exception e) {
+            entity.message += ";[scarlet]E[[001] ("+addr+"|"+x+"|"+y+"|"+i+"):" + e;
         }
     }
 }
