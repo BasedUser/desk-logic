@@ -242,21 +242,34 @@ class DoorDisplay16 extends CustomBlock {
 }
 
 class SorterDisplay16 extends CustomBlock {
-    Tile[] sorters;
-    Tile tx,ty, value;
+    Tile[] sorters, tx, ty, value;
+    int readHeads = 1;
     SorterDisplay16(Tile tile){
         super(tile);
         sorters = new Tile[16*16];
+        try {
+            readHeads = Mathf.clamp(Integer.parseInt((entity.message.split(";")[1])), 1, 16);
+        } catch(Exception e) {
+            entity.message += ";[scarlet]"+e.toString();
+        }
+        sorters = new Tile[16*16];
+        tx = new Tile[readHeads];
+        ty = new Tile[readHeads];
+        value = new Tile[readHeads];
         for (int i = 0; i < sorters.length; i++) addComponent(sorters[i] = to(i%16 + 1,i/16 + 1),Blocks.sorter);
-        addComponent(tx = to(-1,0),Blocks.powerNode);
-        addComponent(ty = to(0,1),Blocks.powerNode);
-        addComponent(value =  to(0,-1),Blocks.powerNode);
+        for (int i = 0; i < readHeads; i++) {
+            addComponent(tx[i] = to(-1+2*i,-2),Blocks.powerNode);
+            addComponent(ty[i] = to(0+2*i,-1),Blocks.powerNode);
+            addComponent(value[i] = to(0+2*i,-3),Blocks.powerNode);
+        }
     }
     @Override
     void logic(){
-        int x = Mathf.clamp(analogRead(tx),0,15);
-        int y = Mathf.clamp(analogRead(ty),0,15);
-        sorterWrite(y + x*16, analogRead(value));
+        for(int i=0; i < readHeads; i++) {
+            int x = Mathf.clamp(analogRead(tx[i]),0,15);
+            int y = Mathf.clamp(analogRead(ty[i]),0,15);
+            sorterWrite(y + x*16, analogRead(value[i]));
+        }
     }
 
     void sorterWrite(int i, int state){
