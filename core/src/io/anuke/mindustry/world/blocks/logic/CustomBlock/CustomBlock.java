@@ -87,9 +87,12 @@ public class CustomBlock{
                 case "doordisplay16": return new DoorDisplay16(tile);
                 case "bit": return new Bit(tile);
                 case "sorterdisplay16": return new SorterDisplay16(tile);
+                case "randomizer":
+                case "randomiser": return new Randomizer(tile);
                 case "storagesensor": return new StorageSensor(tile);
                 case "sorterdisplayd2": return new SorterDisplayD2(tile);
                 case "powersensor": return new PowerSensor(tile);
+                case "rom": return new ROMBlock(tile);
             }
         }
         catch(Exception e){

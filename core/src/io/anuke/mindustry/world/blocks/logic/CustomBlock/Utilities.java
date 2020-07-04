@@ -436,3 +436,28 @@ class Bit extends CustomLogic{
         if (current != state) Call.onDoorToggle(null, door, state);
     }
 }
+
+class Randomizer extends CustomBlock {
+    Tile output, dac1, dac2, dac4, dac8;
+    int value;
+    Randomizer(Tile tile){
+        super(tile);
+        final int[][] auxPanelCoords = {{-3,-1},{-3,0},{-3,1},{-3,2},{-2,-1},{-2,1},{-2,2},{1,-1},{2,0},{2,1},{2,2}};
+        addComponent(output = to(0,1),Blocks.powerNode);
+        addComponent(dac1 = to(-1,0),Blocks.solarPanel);
+        addComponent(dac2 = to(0,-1),Blocks.solarPanel);
+        addComponent(dac4 = to(1,2),Blocks.solarPanel);
+        addComponent(dac8 = to(-1,2),Blocks.solarPanel);
+        for(int[] i : auxPanelCoords) {
+            addComponent(to(i[0],i[1]),Blocks.solarPanel);
+        }
+    }
+    @Override
+    void logic() {
+        value = (int)Math.floor(Mathf.random(16));
+        digitalWrite((value&1) == 1,dac1,output);
+        digitalWrite((value&2) == 2,dac2,output);
+        digitalWrite((value&4) == 4,dac4,output);
+        digitalWrite((value&8) == 8,dac8,output);
+    }
+}
